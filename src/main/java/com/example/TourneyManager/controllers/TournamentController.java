@@ -2,11 +2,7 @@ package com.example.TourneyManager.controllers;
 
 import com.example.TourneyManager.requests.AddPlayerRequest;
 import com.example.TourneyManager.requests.TournamentCreateRequest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
@@ -16,7 +12,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.http.HttpRequest;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.util.HashMap;
 import java.util.*;
 
@@ -27,14 +28,13 @@ public class TournamentController {
 //    private TournamentService tournamentService;
     @Value("${api_key}")
     private String api_key;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostMapping("/create")
-    public ResponseEntity<?> createTournament(HttpServletRequest request, @RequestBody TournamentCreateRequest tournamentCreateRequest) {
+    @PostMapping(value = "/create")
+    public ResponseEntity<?> createTournament(@RequestBody TournamentCreateRequest tournamentCreateRequest) {
         Map<String, Object> responseMessage = new HashMap<>();
         try {
             String uri = "https://api.challonge.com/v1/tournaments";
-            MultiValueMap<String,String> parameters = new LinkedMultiValueMap<String,String>();
+            MultiValueMap<String,String> parameters = new LinkedMultiValueMap<>();
             RestTemplate rt = new RestTemplate();
             parameters.add("api_key", api_key);
             parameters.add("tournament[name]", tournamentCreateRequest.getName());
@@ -45,13 +45,23 @@ public class TournamentController {
             UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(uri)
                     .queryParams(parameters);
             UriComponents uriComponents = builder.build().encode();
-            ResponseEntity<?> response = rt.postForEntity(
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_XML));
+            Map<String, Object> map = new HashMap<>();
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(map, headers);
+            ResponseEntity<String> response = rt.postForEntity(
                     uriComponents.toUri(),
-                    null, Void.class);
-            if (response.getStatusCode().value() != 200){
-                throw new RuntimeException();
-            }
-            responseMessage.put("message", "Tournament successfully created");
+                    entity, String.class);
+            StringReader reader = new StringReader(Objects.requireNonNull(response.getBody()));
+            InputSource inputSource = new InputSource( reader );
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = factory.newDocumentBuilder();
+            Document doc = documentBuilder.parse(inputSource);
+            doc.getDocumentElement().normalize();
+            long id = Integer.parseInt(doc.getElementsByTagName("id").item(0).getTextContent());
+            reader.close();
+            responseMessage.put("message", "Tournament successfully created with id: "+ id);
             return new ResponseEntity<>(responseMessage, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
@@ -61,11 +71,11 @@ public class TournamentController {
     }
 
     @PostMapping("add-players")
-    public ResponseEntity<?> addPlayers(HttpServletRequest request, @RequestBody AddPlayerRequest addPlayerRequest) {
+    public ResponseEntity<?> addPlayers(@RequestBody AddPlayerRequest addPlayerRequest) {
         Map<String, Object> responseMessage = new HashMap<>();
         try {
             String uri = String.format("https://api.challonge.com/v1/tournaments/%s/participants/bulk_add", addPlayerRequest.getId());
-            MultiValueMap<String,String> parameters = new LinkedMultiValueMap<String,String>();
+            MultiValueMap<String,String> parameters = new LinkedMultiValueMap<>();
             RestTemplate rt = new RestTemplate();
             parameters.add("api_key", api_key);
             for (String player: addPlayerRequest.getPlayerList()) {
@@ -88,5 +98,4 @@ public class TournamentController {
             return new ResponseEntity<>(responseMessage, HttpStatus.BAD_REQUEST);
         }
     }
-
 }
