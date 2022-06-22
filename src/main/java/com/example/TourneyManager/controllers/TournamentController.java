@@ -61,6 +61,7 @@ public class TournamentController {
             doc.getDocumentElement().normalize();
             long id = Integer.parseInt(doc.getElementsByTagName("id").item(0).getTextContent());
             reader.close();
+            responseMessage.put("id", id);
             responseMessage.put("message", "Tournament successfully created with id: "+ id);
             return new ResponseEntity<>(responseMessage, HttpStatus.OK);
         } catch (Exception e) {
