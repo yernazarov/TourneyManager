@@ -12,8 +12,9 @@
 * Player Registration
 * View matches in a round
 * Universal message format to keep the results after the game
+* Response from the Bot telling who won the game
 * Leader Board
-* Reminder about the deadline of the games
+* Reminder about the game as a Direct Message to each participant 
 
 ## Message format
 
@@ -27,7 +28,11 @@
   
 ### Example
 ![image](https://user-images.githubusercontent.com/104251147/175401211-638ca7e5-5252-47da-8372-578bab6536f7.png)
-![image](https://user-images.githubusercontent.com/104251147/175404984-1ca3fd4a-0547-410e-9284-664fc703d98a.png)
+![image](https://user-images.githubusercontent.com/104251147/175405594-4c04b21b-4418-4491-a663-4626d1576ea6.png)
+
+### TourneyManager reponse:
+![image](https://user-images.githubusercontent.com/104251147/175406094-594650e9-3a6e-483c-ab04-3cc3ed58d3e9.png)
+
 
 
 
